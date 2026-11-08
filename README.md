@@ -21,5 +21,5 @@ Ideja ir radusies ar mērķi detalizētāk analizēt savu basketbola spēļu sta
 |11|Dokumentācijas, README|
 
 ## Dati un noteikumi
--Ievāktie dati netiek publicēti. Spēlētāju vārdi un statistika ir personas dati, un datu īpašnieki ir Latvijas Basketbola savienība un tās statistikas pakalpojuma sniedzējs. Mapes `raw/`, `data/` un `*.csv` faili ir `.gitignore` sarakstā.
--Repozitorijā ir tikai kods, SQL un analīzes rezultāti. Datus var atjaunot, palaižot skrāperi.
+- Ievāktie dati netiek publicēti. Spēlētāju vārdi un statistika ir personas dati, un datu īpašnieki ir Latvijas Basketbola savienība un tās statistikas pakalpojuma sniedzējs. Mapes `raw/`, `data/` un `*.csv` faili ir `.gitignore` sarakstā.
+- Repozitorijā ir tikai kods, SQL un analīzes rezultāti. Datus var atjaunot, palaižot skrāperi.
