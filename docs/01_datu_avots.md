@@ -12,9 +12,13 @@ Atrast, kur nbl.basket.lv glabā spēļu datus, un kā tos var iegūt.
 - API atbild ar JSON
 - Dati tiek ielādēti bez jebkādas atslēgas vai pieslēgšanas.
 - state ir zlib un base64 kodēts JSON.
-- atslēgu tabulu ({s:Sezonas ID}, {l: valoda}, {z: skats}). 
-- {z=RESULTS} ir rezultāti, {z=FIXTURES} ir kalendārs
+- atslēgu tabulu ({s:Sezonas ID}, {l: valoda}, {z: skats}, {f: Spēles ID}). 
+- {z=RESULTS} ir rezultāti, {z=FIXTURES} ir kalendārs, {z=pbp} ir spēles gaita.
+- API bāzes lapa ir fixture_detail. Bez z atslēgas.
+- nospelētai spēlei statuss ir CONFIRMED.
+
 ## Lēmumi un kapēc
 - Datus ņemšu no API, jo JSON ir stabils un strukturēts.
 - Pietiks ar Python requests bibliotēku, jo API strādā bez atslēgas.
 - Mainot atslēgu "z" varu manipulēt ar to, ko API atgriež, un uz to balstīsies datu skrāperis.
+- Katrai spēlei divi pieprasījumi. Viens protokols, otrs spēles gaita, jo protokols neietver spēles gaitu savā atbildē.
