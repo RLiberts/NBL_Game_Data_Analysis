@@ -147,7 +147,8 @@ CREATE TABLE dbo.GameEvents (
     CONSTRAINT FK_GameEvents_Players FOREIGN KEY (PlayerId) REFERENCES dbo.Players (PlayerId),
     CONSTRAINT CK_GameEvents_Period CHECK (PeriodId BETWEEN 1 AND 4 OR PeriodId >= 11),
     CONSTRAINT CK_GameEvents_Clock CHECK (ClockSeconds BETWEEN 0 AND 600),
-    CONSTRAINT CK_GameEvents_XY CHECK (X BETWEEN 0 AND 100 AND Y BETWEEN 0 AND 100)
+    CONSTRAINT CK_GameEvents_XY CHECK (X BETWEEN 0 AND 100 AND Y BETWEEN 0 AND 100),
+    CONSTRAINT FK_GameEvents_Games FOREIGN KEY (GameId) REFERENCES dbo.Games (GameId)
 );
 GO
 

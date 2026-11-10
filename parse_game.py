@@ -37,6 +37,7 @@ def parse_players(fixture_id: str)-> list[dict]:
                 "person_id": player["personId"],
                 "name": player["personName"],
                 "bib": player["bib"],
+                "position": player["position"],
                 "starter": player["starter"],
                 "participated": player["participated"]
             }
