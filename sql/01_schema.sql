@@ -126,3 +126,28 @@ CREATE TABLE dbo.GamePeriodScores (
     CONSTRAINT CK_GamePeriodScores_Points CHECK (Points >= 0)
 );
 GO
+
+IF OBJECT_ID(N'dbo.GameEvents', N'U') IS NULL
+CREATE TABLE dbo.GameEvents (
+    EventId UNIQUEIDENTIFIER NOT NULL,
+    GameId UNIQUEIDENTIFIER NOT NULL,
+    EventSeq INT NOT NULL,
+    PeriodId TINYINT NOT NULL,
+    ClockSeconds SMALLINT NOT NULL,
+    TeamId UNIQUEIDENTIFIER NULL,
+    PlayerId UNIQUEIDENTIFIER NULL,
+    EventType NVARCHAR(30) NOT NULL,
+    EventSubType NVARCHAR(30) NULL,
+    Success BIT NULL,
+    X DECIMAL(5,2) NULL,
+    Y DECIMAL(5,2) NULL,
+    CONSTRAINT PK_GameEvents PRIMARY KEY (EventId),
+    CONSTRAINT UQ_GameEvents_Seq UNIQUE (GameId, EventSeq),
+    CONSTRAINT FK_GameEvents_GameTeams FOREIGN KEY (GameId, TeamId) REFERENCES dbo.GameTeams (GameId, TeamId),
+    CONSTRAINT FK_GameEvents_Players FOREIGN KEY (PlayerId) REFERENCES dbo.Players (PlayerId),
+    CONSTRAINT CK_GameEvents_Period CHECK (PeriodId BETWEEN 1 AND 4 OR PeriodId >= 11),
+    CONSTRAINT CK_GameEvents_Clock CHECK (ClockSeconds BETWEEN 0 AND 600),
+    CONSTRAINT CK_GameEvents_XY CHECK (X BETWEEN 0 AND 100 AND Y BETWEEN 0 AND 100)
+);
+GO
+
