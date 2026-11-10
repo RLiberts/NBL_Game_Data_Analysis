@@ -113,3 +113,16 @@ CREATE TABLE dbo.PlayerGameStats (
     )
 );
 GO
+
+IF OBJECT_ID(N'dbo.GamePeriodScores', N'U') IS NULL
+CREATE TABLE dbo.GamePeriodScores (
+    GameId UNIQUEIDENTIFIER NOT NULL,
+    TeamId UNIQUEIDENTIFIER NOT NULL,
+    PeriodId TINYINT NOT NULL,
+    Points INT NOT NULL,
+    CONSTRAINT PK_GamePeriodScores PRIMARY KEY (GameId, TeamId, PeriodId),
+    CONSTRAINT FK_GamePeriodScores_GameTeams FOREIGN KEY (GameId, TeamId) REFERENCES dbo.GameTeams (GameId, TeamId),
+    CONSTRAINT CK_GamePeriodScores_Period CHECK (PeriodId BETWEEN 1 AND 4 OR PeriodId >= 11),
+    CONSTRAINT CK_GamePeriodScores_Points CHECK (Points >= 0)
+);
+GO
