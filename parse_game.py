@@ -46,6 +46,21 @@ def parse_players(fixture_id: str)-> list[dict]:
             rows.append(row)
     return rows
 
+def parse_events(fixture_id: str) -> list[dict]:
+    pbp = json.loads((RAW / f"{fixture_id}_pbp.json").read_text(encoding="utf-8"))
+
+    rows = []
+    for period in pbp["data"]["periodData"]:
+        for event in period["events"]:
+            rows.append({
+                "fixture_id": fixture_id, "event_id": event["eventId"],
+                "period": event["periodId"], "clock_seconds": duration_to_seconds(event["clock"]),
+                "event_type": event["eventType"], "event_sub_type": event["eventSubType"], "success": event["success"],
+                "person_id": event["personId"], "team_id": event["entityId"],
+                "x": event["x"], "y": event["y"]
+            })
+    return rows
+
 def write_csv(rows: list[dict], file_path: Path) -> None:
     DATA.mkdir(exist_ok=True)
     with file_path.open("w", newline="", encoding="utf-8-sig") as f:
@@ -58,8 +73,20 @@ if __name__ == "__main__":
     fixture_id = "5bea1909-b03d-11f1-94f9-8fdd370562ae"
     players = parse_players(fixture_id)
     write_csv(players, DATA / f"{fixture_id}_players.csv")
+    events = parse_events(fixture_id)
+    write_csv(events, DATA / f"{fixture_id}_events.csv")
+
+
     for field in ("points", "seconds"):
         totals = {}
         for p in players:
             totals[p["side"]] = totals.get(p["side"], 0) + (p[field] or 0)
         print(f"{field} pa komandām: {totals}")
+
+    points_map = {"2pt": 2, "3pt": 3, "freeThrow": 1}
+    event_points = {}
+    for e in events:
+        if e["success"] and e["event_type"] in points_map:
+            team = e["team_id"]
+            event_points[team] = event_points.get(team, 0) + points_map[e["event_type"]]
+    print("Punkti no spēles gaitas:", event_points)
