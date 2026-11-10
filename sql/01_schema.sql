@@ -73,3 +73,43 @@ CREATE TABLE dbo.GameTeams (
     CONSTRAINT CK_GameTeams_Score CHECK (Score >= 0)
 );
 GO
+
+IF OBJECT_ID(N'dbo.PlayerGameStats', N'U') IS NULL
+CREATE TABLE dbo.PlayerGameStats (
+    GameId UNIQUEIDENTIFIER NOT NULL,
+    PlayerId UNIQUEIDENTIFIER NOT NULL,
+    TeamId UNIQUEIDENTIFIER NOT NULL,
+    Bib NVARCHAR(4) NULL,
+    Position NVARCHAR(5) NULL,
+    IsStarter BIT NOT NULL,
+    Participated BIT NOT NULL,
+    Seconds INT NULL,
+    Points INT NULL,
+    TwoPtMade INT NULL,
+    TwoPtAttempted INT NULL,
+    ThreePtMade INT NULL,
+    ThreePtAttempted INT NULL,
+    FreeThrowsMade INT NULL,
+    FreeThrowsAttempted INT NULL,
+    ReboundsOffensive INT NULL,
+    ReboundsDefensive INT NULL,
+    Assists INT NULL,
+    Turnovers INT NULL,
+    Steals INT NULL,
+    Blocks INT NULL,
+    Fouls INT NULL,
+    PlusMinus INT NULL,
+    Efficiency INT NULL,
+    CONSTRAINT PK_PlayerGameStats PRIMARY KEY (GameId, PlayerId),
+    CONSTRAINT FK_PlayerGameStats_Players FOREIGN KEY (PlayerId) REFERENCES dbo.Players (PlayerId),
+    CONSTRAINT FK_PlayerGameStats_GameTeams FOREIGN KEY (GameId, TeamId) REFERENCES dbo.GameTeams (GameId, TeamId),
+    CONSTRAINT CK_PlayerGameStats_TwoPt CHECK (TwoPtMade <= TwoPtAttempted),
+    CONSTRAINT CK_PlayerGameStats_ThreePt CHECK (ThreePtMade <= ThreePtAttempted),
+    CONSTRAINT CK_PlayerGameStats_FT CHECK (FreeThrowsMade <= FreeThrowsAttempted),
+    CONSTRAINT CK_PlayerGameStats_NonNegative CHECK (
+    Seconds >= 0 AND Points >= 0 AND TwoPtMade >= 0 AND ThreePtMade >= 0
+    AND FreeThrowsMade >= 0 AND ReboundsOffensive >= 0 AND ReboundsDefensive >= 0
+    AND Assists >= 0 AND Turnovers >= 0 AND Steals >= 0 AND Blocks >= 0 AND Fouls >= 0
+    )
+);
+GO
