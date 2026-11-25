@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from datetime import datetime
 from db import get_connection
 
 RAW = Path("raw")
@@ -36,6 +37,13 @@ WHEN MATCHED THEN UPDATE SET Name = s.Name
 WHEN NOT MATCHED THEN INSERT (PlayerId, Name) VALUES (s.PlayerId, s.Name);
 """
 
+UPSERT_GAME = """
+MERGE dbo.Games AS t
+USING (SELECT ? AS GameId, ? AS SeasonId, ? AS VenueId, ? AS StartTimeLocal, ? AS StartTimeUtc, ? AS Status, ? AS GameType, ? AS Attendance)
+AS s ON t.GameId = s.GameId
+WHEN MATCHED THEN UPDATE SET SeasonId = s.SeasonId, VenueId = s.VenueId, StartTimeLocal = s.StartTimeLocal, StartTimeUtc = s.StartTimeUtc, Status = s.Status, GameType = s.GameType, Attendance = s.Attendance
+WHEN NOT MATCHED THEN INSERT (GameId, SeasonId, VenueId, StartTimeLocal, StartTimeUtc, Status, GameType, Attendance) VALUES (s.GameId, s.SeasonId, s.VenueId, s.StartTimeLocal, s.StartTimeUtc, s.Status, s.GameType, s.Attendance);
+"""
 def load_json(fixture_id: str, kind: str) -> dict:
     return json.loads((RAW / f"{fixture_id}_{kind}.json").read_text(encoding="utf-8")) #kind ir 'pbp' vai 'box'
 
@@ -60,6 +68,16 @@ def load_reference_data(cursor, box: dict) -> None:
     cursor.executemany(UPSERT_PLAYER, players)
     print(f"{len(fixture['competitors'])} komandas, {len(players)} spēlētāji")
 
+def load_game_row(cursor, box: dict) -> None:
+
+    fixture = box["data"]["fixture"]
+
+    cursor.execute(
+        UPSERT_GAME, fixture["fixtureId"], fixture["seasonId"], fixture["venueId"],
+        datetime.fromisoformat(fixture["startTimeLocal"]), datetime.fromisoformat(fixture["startTimeUTC"]),
+        fixture["status"],fixture["fixtureType"], fixture ["attendance"]
+    )
+    print(f"Datums {fixture['startTimeLocal'][:10]}, {fixture['status']}, skatītāji {fixture['attendance']}")
 
 if __name__ == "__main__":
     fixture_id = "5bea1909-b03d-11f1-94f9-8fdd370562ae"
@@ -69,4 +87,5 @@ if __name__ == "__main__":
     with get_connection() as conn:
         cursor = conn.cursor()
         load_reference_data(cursor, box)
+        load_game_row(cursor, box)
         conn.commit()
