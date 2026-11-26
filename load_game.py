@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 from db import get_connection
+from parse_game import duration_to_seconds
 
 RAW = Path("raw")
 
@@ -44,6 +45,24 @@ AS s ON t.GameId = s.GameId
 WHEN MATCHED THEN UPDATE SET SeasonId = s.SeasonId, VenueId = s.VenueId, StartTimeLocal = s.StartTimeLocal, StartTimeUtc = s.StartTimeUtc, Status = s.Status, GameType = s.GameType, Attendance = s.Attendance
 WHEN NOT MATCHED THEN INSERT (GameId, SeasonId, VenueId, StartTimeLocal, StartTimeUtc, Status, GameType, Attendance) VALUES (s.GameId, s.SeasonId, s.VenueId, s.StartTimeLocal, s.StartTimeUtc, s.Status, s.GameType, s.Attendance);
 """
+
+DELETE_GAME_DATA = [
+"DELETE FROM dbo.GameEvents WHERE GameId = ?",
+"DELETE FROM dbo.PlayerGameStats WHERE GameId = ?",
+"DELETE FROM dbo.GamePeriodScores WHERE GameId = ?",
+"DELETE FROM dbo.GameTeams WHERE GameId = ?",
+]
+
+INSERT_GAME_TEAM = """
+INSERT INTO dbo.GameTeams (GameId, TeamId, IsHome, Score, TeamReboundsOffensive, TeamReboundsDefensive, TeamTurnovers, TeamFouls, BiggestLead, TimeInLeadSeconds, LeadChanges, PointsInPaint, PointsFromBench)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+"""
+
+INSERT_PERIOD_SCORE = """
+INSERT INTO dbo.GamePeriodScores (GameId, TeamId, PeriodId, Points)
+VALUES (?, ?, ?, ?);
+"""
+
 def load_json(fixture_id: str, kind: str) -> dict:
     return json.loads((RAW / f"{fixture_id}_{kind}.json").read_text(encoding="utf-8")) #kind ir 'pbp' vai 'box'
 
@@ -79,6 +98,39 @@ def load_game_row(cursor, box: dict) -> None:
     )
     print(f"Datums {fixture['startTimeLocal'][:10]}, {fixture['status']}, skatītāji {fixture['attendance']}")
 
+
+def delete_game_data(cursor, game_id: str) -> None:
+    for sql in DELETE_GAME_DATA:
+        cursor.execute(sql, game_id)
+
+
+def load_game_teams(cursor, box: dict) -> None:
+    game_id = box["data"]["fixture"]["fixtureId"]
+    base = box["data"]["statistics"]["data"]["base"]
+
+    for team in box["data"]["fixture"]["competitors"]:
+        side = "home" if team["isHome"] else "away"
+        extra = base[side]["extra"]
+        totals = base[side]["totalEntityStats"]
+        score = int(team["score"]) if team["score"] is not None else None
+
+        cursor.execute(
+            INSERT_GAME_TEAM,
+            game_id, team["entityId"], team["isHome"], score, extra["reboundsOffensive"], extra["reboundsDefensive"], extra["turnovers"], extra["foulsTotal"],
+            totals["biggestLead"], duration_to_seconds(totals["timeInLead"]),totals["leadChanges"], totals["pointsInThePaint"], totals["pointsFromBench"]
+        )
+
+
+def load_period_scores(cursor, box: dict) -> None:
+    game_id = box["data"]["fixture"]["fixtureId"]
+    rows = []
+    for period in box["data"]["periodData"]:
+        for team_id, points in period["teamScore"].items():
+            rows.append((game_id, team_id, period["periodId"], points))
+    cursor.executemany(INSERT_PERIOD_SCORE, rows)
+    print(f"Periodi: {len(rows)} rindas")
+
+
 if __name__ == "__main__":
     fixture_id = "5bea1909-b03d-11f1-94f9-8fdd370562ae"
     box = load_json(fixture_id, "box")
@@ -88,4 +140,7 @@ if __name__ == "__main__":
         cursor = conn.cursor()
         load_reference_data(cursor, box)
         load_game_row(cursor, box)
-        conn.commit()
+        game_id = box["data"]["fixture"]["fixtureId"]
+        delete_game_data(cursor, game_id)
+        load_game_teams(cursor, box)
+        load_period_scores(cursor, box)
