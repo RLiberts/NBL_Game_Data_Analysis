@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 from db import get_connection
-from parse_game import duration_to_seconds
+from parse_game import duration_to_seconds, parse_players
 
 RAW = Path("raw")
 
@@ -61,6 +61,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 INSERT_PERIOD_SCORE = """
 INSERT INTO dbo.GamePeriodScores (GameId, TeamId, PeriodId, Points)
 VALUES (?, ?, ?, ?);
+"""
+
+INSERT_PLAYER_STATS = """
+INSERT INTO dbo.PlayerGameStats (GameId, PlayerId, TeamId, Bib, Position, IsStarter, Participated, Seconds, Points, TwoPtMade, TwoPtAttempted, ThreePtMade,
+ThreePtAttempted, FreeThrowsMade, FreeThrowsAttempted, ReboundsOffensive,ReboundsDefensive, Assists, Turnovers, Steals, Blocks, Fouls, PlusMinus, Efficiency)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
 
 def load_json(fixture_id: str, kind: str) -> dict:
@@ -130,6 +136,20 @@ def load_period_scores(cursor, box: dict) -> None:
     cursor.executemany(INSERT_PERIOD_SCORE, rows)
     print(f"Periodi: {len(rows)} rindas")
 
+def load_player_stats(cursor, fixture_id: str) -> None:
+    rows = []
+    for p in parse_players(fixture_id):
+        rows.append((
+            p["fixture_id"], p["person_id"], p["team_id"], p["bib"], p["position"], p["starter"], p["participated"], p["seconds"],
+            p["points"], p["pointsTwoMade"], p["pointsTwoAttempted"],
+            p["pointsThreeMade"], p["pointsThreeAttempted"],
+            p["freeThrowsMade"], p["freeThrowsAttempted"],
+            p["reboundsOffensive"], p["reboundsDefensive"],
+            p["assists"], p["turnovers"], p["steals"], p["blocks"],
+            p["foulsTotal"], p["plusMinus"], p["efficiency"]
+        ))
+    cursor.executemany(INSERT_PLAYER_STATS, rows)
+    print(f"Spēlētāju statistika: {len(rows)} rindas")
 
 if __name__ == "__main__":
     fixture_id = "5bea1909-b03d-11f1-94f9-8fdd370562ae"
@@ -144,3 +164,4 @@ if __name__ == "__main__":
         delete_game_data(cursor, game_id)
         load_game_teams(cursor, box)
         load_period_scores(cursor, box)
+        load_player_stats(cursor, fixture_id)
