@@ -168,18 +168,28 @@ def load_events(cursor, fixture_id: str) -> None:
     cursor.executemany(INSERT_EVENT, rows)
     print(f"Notikumi: {len(rows)} rindas")
 
-if __name__ == "__main__":
-    fixture_id = "5bea1909-b03d-11f1-94f9-8fdd370562ae"
+
+def load_game(fixture_id: str) -> None:
     box = load_json(fixture_id, "box")
-    season = box["data"]["banner"]["season"]
 
     with get_connection() as conn:
         cursor = conn.cursor()
-        load_reference_data(cursor, box)
-        load_game_row(cursor, box)
-        game_id = box["data"]["fixture"]["fixtureId"]
-        delete_game_data(cursor, game_id)
-        load_game_teams(cursor, box)
-        load_period_scores(cursor, box)
-        load_player_stats(cursor, fixture_id)
-        load_events(cursor, fixture_id)
+        cursor.fast_executemany = True
+        try:
+            load_reference_data(cursor, box)
+            load_game_row(cursor, box)
+            delete_game_data(cursor, fixture_id)
+            load_game_teams(cursor, box)
+            load_period_scores(cursor, box)
+            load_player_stats(cursor, fixture_id)
+            load_events(cursor, fixture_id)
+            conn.commit()
+            print(f"Spēle ielādēta: {fixture_id}")
+        except Exception:
+            conn.rollback()
+            print(f"Kļūda, spēle {fixture_id} netika saglabāta")
+            raise
+
+
+if __name__ == "__main__":
+    load_game("5bea1909-b03d-11f1-94f9-8fdd370562ae")
