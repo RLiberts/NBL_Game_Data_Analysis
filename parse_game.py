@@ -51,9 +51,14 @@ def parse_events(fixture_id: str) -> list[dict]:
     pbp = json.loads((RAW / f"{fixture_id}_pbp.json").read_text(encoding="utf-8"))
 
     rows = []
+    seq = 0
     for period in pbp["data"]["periodData"]:
         for event in period["events"]:
+            seq += 1
             rows.append({
+                "fixture_id": fixture_id,
+                "event_id": event["eventId"],
+                "event_seq": seq,
                 "fixture_id": fixture_id, "event_id": event["eventId"],
                 "period": event["periodId"], "clock_seconds": duration_to_seconds(event["clock"]),
                 "event_type": event["eventType"], "event_sub_type": event["eventSubType"], "success": event["success"],

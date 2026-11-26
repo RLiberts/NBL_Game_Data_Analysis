@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 from db import get_connection
-from parse_game import duration_to_seconds, parse_players
+from parse_game import duration_to_seconds, parse_players, parse_events
 
 RAW = Path("raw")
 
@@ -68,6 +68,12 @@ INSERT INTO dbo.PlayerGameStats (GameId, PlayerId, TeamId, Bib, Position, IsStar
 ThreePtAttempted, FreeThrowsMade, FreeThrowsAttempted, ReboundsOffensive,ReboundsDefensive, Assists, Turnovers, Steals, Blocks, Fouls, PlusMinus, Efficiency)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 """
+
+INSERT_EVENT = """
+INSERT INTO dbo.GameEvents (EventId, GameId, EventSeq, PeriodId, ClockSeconds, TeamId, PlayerId, EventType, EventSubType, Success, X, Y)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+"""
+
 
 def load_json(fixture_id: str, kind: str) -> dict:
     return json.loads((RAW / f"{fixture_id}_{kind}.json").read_text(encoding="utf-8")) #kind ir 'pbp' vai 'box'
@@ -151,6 +157,17 @@ def load_player_stats(cursor, fixture_id: str) -> None:
     cursor.executemany(INSERT_PLAYER_STATS, rows)
     print(f"Spēlētāju statistika: {len(rows)} rindas")
 
+def load_events(cursor, fixture_id: str) -> None:
+    rows = []
+    for e in parse_events(fixture_id):
+        rows.append((
+            e["event_id"], e["fixture_id"], e["event_seq"], e["period"],
+            e["clock_seconds"], e["team_id"], e["person_id"],
+            e["event_type"], e["event_sub_type"], e["success"], e["x"], e["y"]
+        ))
+    cursor.executemany(INSERT_EVENT, rows)
+    print(f"Notikumi: {len(rows)} rindas")
+
 if __name__ == "__main__":
     fixture_id = "5bea1909-b03d-11f1-94f9-8fdd370562ae"
     box = load_json(fixture_id, "box")
@@ -165,3 +182,4 @@ if __name__ == "__main__":
         load_game_teams(cursor, box)
         load_period_scores(cursor, box)
         load_player_stats(cursor, fixture_id)
+        load_events(cursor, fixture_id)
